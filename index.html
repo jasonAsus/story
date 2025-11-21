@@ -41,42 +41,69 @@
             color: #1565c0;
             text-decoration: underline;
         }
+        .error-msg {
+            color: #d32f2f;
+            text-align: center;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>故事集首頁</h1>
         <ul id="story-list">
-            <!-- JS 會自動產生故事連結 -->
+            <li style="text-align:center; color:#666;">載入中...</li>
         </ul>
+        
         <script>
-        // 嘗試 fetch 目錄內容並自動產生連結
         async function fetchStories() {
             const list = document.getElementById('story-list');
+            
+            // 設定 GitHub 資訊
+            const username = 'jasonAsus'; 
+            const repo = 'story';      
+            const folderPath = 'stories'; 
+
+            // GitHub API URL
+            const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
+
             try {
-                const res = await fetch('stories/');
-                if (!res.ok) throw new Error('無法取得 stories 目錄');
-                const text = await res.text();
-                // 解析目錄 HTML，尋找 .html 檔案
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                const links = Array.from(doc.querySelectorAll('a'));
-                const htmlFiles = links.filter(a => a.href.endsWith('.html'));
+                const res = await fetch(apiUrl);
+                
+                // 處理錯誤 (例如找不到 Repo 或 API 超限)
+                if (!res.ok) {
+                    if (res.status === 403) throw new Error('API 請求次數過多，請稍後再試');
+                    if (res.status === 404) throw new Error('找不到 stories 資料夾');
+                    throw new Error(`無法取得列表 (Status: ${res.status})`);
+                }
+                
+                const data = await res.json();
+                
+                // 過濾出 .html 檔案 (並且排除 index.html 如果它不小心也在裡面的話)
+                const htmlFiles = data.filter(file => file.name.endsWith('.html'));
+
+                // 清空載入中訊息
+                list.innerHTML = '';
+
                 if (htmlFiles.length === 0) {
-                    list.innerHTML = '<li>目前沒有故事檔案</li>';
+                    list.innerHTML = '<li style="text-align:center;">目前沒有故事檔案</li>';
                 } else {
-                    htmlFiles.forEach(a => {
-                        const fileName = a.href.split('/').pop();
-                        const displayName = decodeURIComponent(fileName.replace('.html','').replace(/_/g,' '));
+                    htmlFiles.forEach(file => {
+                        // 處理檔名顯示：移除 .html 副檔名，將底線取代為空格
+                        const displayName = decodeURIComponent(file.name.replace('.html','').replace(/_/g,' '));
+                        
                         const li = document.createElement('li');
-                        li.innerHTML = `<a href="stories/${fileName}">${displayName}</a>`;
+                        // 這裡使用相對路徑連結到 stories 資料夾內的檔案
+                        li.innerHTML = `<a href="${folderPath}/${file.name}">${displayName}</a>`;
                         list.appendChild(li);
                     });
                 }
             } catch (e) {
-                list.innerHTML = '<li>無法自動取得故事列表，請手動新增連結。</li>';
+                console.error(e);
+                list.innerHTML = `<li class="error-msg">讀取失敗：${e.message}</li>`;
             }
         }
+        
         fetchStories();
         </script>
     </div>
