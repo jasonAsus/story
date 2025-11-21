@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>故事集 - GitHub Pages</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 32px 24px;
+        }
+        h1 {
+            color: #2d3a4b;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 16px 0;
+        }
+        a {
+            color: #1976d2;
+            text-decoration: none;
+            font-size: 1.15em;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: #1565c0;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>故事集首頁</h1>
+        <ul id="story-list">
+            <!-- JS 會自動產生故事連結 -->
+        </ul>
+        <script>
+        // 嘗試 fetch 目錄內容並自動產生連結
+        async function fetchStories() {
+            const list = document.getElementById('story-list');
+            try {
+                const res = await fetch('stories/');
+                if (!res.ok) throw new Error('無法取得 stories 目錄');
+                const text = await res.text();
+                // 解析目錄 HTML，尋找 .html 檔案
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const links = Array.from(doc.querySelectorAll('a'));
+                const htmlFiles = links.filter(a => a.href.endsWith('.html'));
+                if (htmlFiles.length === 0) {
+                    list.innerHTML = '<li>目前沒有故事檔案</li>';
+                } else {
+                    htmlFiles.forEach(a => {
+                        const fileName = a.href.split('/').pop();
+                        const displayName = decodeURIComponent(fileName.replace('.html','').replace(/_/g,' '));
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="stories/${fileName}">${displayName}</a>`;
+                        list.appendChild(li);
+                    });
+                }
+            } catch (e) {
+                list.innerHTML = '<li>無法自動取得故事列表，請手動新增連結。</li>';
+            }
+        }
+        fetchStories();
+        </script>
+    </div>
+</body>
+</html>
